@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contractor Portal | Golden Edition</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        background: '#030303',
+                        surface: '#0a0a0a',
+                        gold: { 400: '#facc15', 500: '#eab308', primary: '#d4af37' }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #030303; color: #ededed; overflow-x: hidden; }
+        
+        /* --- PROPER SWEEPING RADAR CSS --- */
+        .radar-bg {
+            position: fixed; inset: 0; z-index: -1; overflow: hidden;
+            background: radial-gradient(circle at center, rgba(212, 175, 55, 0.15) 0%, #030303 80%);
+        }
+        
+        /* The sweeping light effect */
+        .radar-sweep {
+            position: absolute; top: 50%; left: 50%;
+            width: 200vmax; height: 200vmax; /* Covers entire screen */
+            margin-left: -100vmax; margin-top: -100vmax;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, transparent 75%, rgba(212, 175, 55, 0.5) 100%);
+            animation: scan 4s linear infinite;
+        }
+
+        /* The visible golden rings */
+        .radar-ring {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .radar-ring-1 { width: 380px; height: 380px; border: 2px dashed rgba(212, 175, 55, 0.5); }
+        .radar-ring-2 { width: 700px; height: 700px; border: 1px solid rgba(212, 175, 55, 0.2); }
+        .radar-ring-3 { width: 1100px; height: 1100px; border: 2px dashed rgba(212, 175, 55, 0.3); }
+
+        @keyframes scan { 100% { transform: rotate(360deg); } }
+
+        /* Card styling */
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.15), inset 0 0 15px rgba(212, 175, 55, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 relative selection:bg-gold-500 selection:text-black">
+    
+    <!-- THE REAL RADAR BACKGROUND -->
+    <div class="radar-bg">
+        <div class="radar-sweep"></div>
+        <div class="radar-ring radar-ring-1"></div>
+        <div class="radar-ring radar-ring-2"></div>
+        <div class="radar-ring radar-ring-3"></div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="glass-panel w-full max-w-md rounded-[2rem] p-8 shadow-2xl relative z-10">
+        
+        <!-- Header -->
+        <div class="text-center mb-8 relative">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-gold-primary/20 blur-[40px] rounded-full z-[-1]"></div>
+            <h1 class="text-3xl font-extrabold text-white tracking-tight">
+                Road<span class="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-gold-primary">Pulse</span>
+            </h1>
+            <div class="inline-flex items-center gap-2 mt-2 bg-gold-primary/10 px-3 py-1 rounded-full border border-gold-primary/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse shadow-[0_0_8px_#facc15]"></span>
+                <p class="text-[10px] font-bold tracking-[0.2em] text-gold-primary uppercase">Field Node</p>
+            </div>
+        </div>
+
+        <form id="verify-form" class="space-y-6">
+            <!-- Task ID Input -->
+            <div>
+                <label class="block text-[10px] font-bold text-gold-primary/80 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <i data-lucide="hash" class="w-3 h-3"></i> Task Identifier
+                </label>
+                <div class="relative">
+                    <input type="number" id="report-id" required class="w-full bg-black/60 border border-gold-primary/40 rounded-xl py-3.5 px-4 pl-12 text-white font-mono focus:border-gold-primary focus:ring-1 focus:ring-gold-primary outline-none transition-all placeholder-gray-600 shadow-inner" placeholder="e.g. 1">
+                    <i data-lucide="briefcase" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-primary/50"></i>
+                </div>
+            </div>
+
+            <!-- Camera Upload -->
+            <div>
+                <label class="block text-[10px] font-bold text-gold-primary/80 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <i data-lucide="scan-line" class="w-3 h-3"></i> Proof of Repair
+                </label>
+                <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-40 border border-gold-primary/40 border-dashed rounded-2xl cursor-pointer bg-black/40 hover:bg-black/80 transition-all group shadow-inner relative overflow-hidden">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6 transform group-hover:scale-105 transition-transform duration-300">
+                            <div class="w-12 h-12 rounded-full bg-gold-primary/20 flex items-center justify-center mb-3 group-hover:shadow-[0_0_20px_rgba(212,175,55,0.6)] transition-all">
+                                <i data-lucide="camera" class="w-6 h-6 text-gold-primary"></i>
+                            </div>
+                            <p class="text-sm text-gray-300 font-medium">Activate Camera</p>
+                        </div>
+                        <input type="file" id="repair-photo" accept="image/*" capture="environment" required class="hidden" />
+                    </label>
+                </div>
+                <div id="file-name-container" class="mt-3 hidden flex justify-center">
+                    <span id="file-name" class="text-[10px] bg-gold-primary/20 text-gold-primary px-3 py-1 rounded-full border border-gold-primary/40 font-mono tracking-wide"></span>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-gold-500 to-gold-primary hover:from-gold-400 hover:to-gold-500 text-black font-extrabold text-sm uppercase tracking-widest py-4 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(212,175,55,0.4)] flex justify-center items-center gap-2">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+                Audit & Verify
+            </button>
+        </form>
+
+        <!-- Dynamic Results Toast -->
+        <div id="result-box" class="mt-6 hidden p-4 rounded-xl text-sm font-medium leading-relaxed border backdrop-blur-md">
+            <!-- Results injected here -->
+        </div>
+    </div>
+
+    <script>lucide.createIcons();</script>
+    <script>
+        const API_BASE = "http://localhost:8000";
+        const fileInput = document.getElementById('repair-photo');
+        const fileNameDisplay = document.getElementById('file-name');
+        const fileContainer = document.getElementById('file-name-container');
+        const resultBox = document.getElementById('result-box');
+        const submitBtn = document.getElementById('submit-btn');
+
+        fileInput.addEventListener('change', (e) => {
+            if(e.target.files.length > 0) {
+                fileNameDisplay.textContent = e.target.files[0].name;
+                fileContainer.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('verify-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const reportId = document.getElementById('report-id').value;
+            const file = fileInput.files[0];
+
+            if(!file) { alert("Visual evidence required."); return; }
+
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Running Audit...`;
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-80');
+            lucide.createIcons();
+            resultBox.classList.add('hidden');
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => { await sendData(reportId, file, position.coords.latitude, position.coords.longitude, originalBtnText); },
+                    (err) => { showError("GPS Locked. Allow location to verify site authenticity."); resetBtn(originalBtnText); },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                showError("Geospatial tracking not supported.");
+                resetBtn(originalBtnText);
+            }
+        });
+
+        async function sendData(reportId, file, lat, lon, originalText) {
+            const formData = new FormData();
+            formData.append("report_id", reportId);
+            formData.append("lat", lat);
+            formData.append("lon", lon);
+            formData.append("file", file);
+
+            try {
+                const response = await fetch(`${API_BASE}/verify-repair`, { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                resultBox.className = "mt-6 p-4 rounded-xl text-sm font-medium leading-relaxed border backdrop-blur-md";
+
+                if(response.ok && data.status === "approved") {
+                    resultBox.classList.add('bg-green-900/30', 'text-green-400', 'border-green-500/50');
+                    resultBox.innerHTML = `<div class="flex items-center gap-2 mb-1"><i data-lucide="check-circle-2" class="w-5 h-5"></i><strong class="uppercase tracking-widest text-xs">Clearance Granted</strong></div><span class="text-xs font-mono opacity-80">${data.reason}</span>`;
+                } else {
+                    resultBox.classList.add('bg-red-900/30', 'text-red-400', 'border-red-500/50');
+                    resultBox.innerHTML = `<div class="flex items-center gap-2 mb-1"><i data-lucide="alert-octagon" class="w-5 h-5"></i><strong class="uppercase tracking-widest text-xs">Anomaly Detected</strong></div><span class="text-xs font-mono opacity-80">${data.reason || data.detail}</span>`;
+                }
+            } catch (error) {
+                showError("Core server unreachable.");
+            } finally {
+                resetBtn(originalText);
+                lucide.createIcons();
+            }
+        }
+
+        function showError(msg) {
+            resultBox.className = "mt-6 p-4 rounded-xl text-sm font-medium leading-relaxed border backdrop-blur-md bg-red-900/30 text-red-400 border-red-500/50 block";
+            resultBox.innerHTML = `<div class="flex items-center gap-2 mb-1"><i data-lucide="x-circle" class="w-5 h-5"></i><strong class="uppercase tracking-widest text-xs">System Error</strong></div><span class="text-xs font-mono opacity-80">${msg}</span>`;
+            lucide.createIcons();
+        }
+
+        function resetBtn(text) {
+            submitBtn.innerHTML = text;
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-80');
+        }
+    </script>
+</body>
+</html>

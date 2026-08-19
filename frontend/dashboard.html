@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoadPulse | Enterprise Ops Center</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        background: '#030303', surface: '#0a0a0a',
+                        gold: { 400: '#facc15', 500: '#eab308', primary: '#d4af37' }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #030303; color: #ededed; overflow: hidden; }
+        .leaflet-container { background: #030303; }
+        .leaflet-popup-content-wrapper { background: #0a0a0a; color: #d4af37; border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; }
+        .leaflet-popup-tip { background: #0a0a0a; }
+        ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(212,175,55,0.4); }
+
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(212, 175, 55, 0.2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .marker-cluster { background-color: rgba(212, 175, 55, 0.4) !important; border-radius: 50%; }
+        .marker-cluster div { background-color: rgba(212, 175, 55, 0.9) !important; color: #000 !important; font-weight: bold; border-radius: 50%; }
+    </style>
+</head>
+<body class="h-screen w-screen relative selection:bg-gold-500 selection:text-black">
+
+    <div id="map" class="absolute inset-0 z-0"></div>
+
+    <div class="absolute top-6 left-6 z-10 w-96 flex flex-col gap-4">
+        
+        <div class="glass-panel rounded-2xl p-6 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-gold-primary/10 blur-[30px] rounded-full pointer-events-none"></div>
+            <h1 class="text-2xl font-extrabold text-white tracking-tight">
+                Road<span class="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-gold-primary">Pulse</span>
+            </h1>
+            <p class="text-[10px] font-bold tracking-[0.2em] text-gold-primary uppercase mt-1">Enterprise Ops Control</p>
+        </div>
+
+        <div class="glass-panel rounded-2xl p-5 flex flex-col gap-4">
+            <div>
+                <label class="block text-[10px] font-bold text-gold-primary/80 uppercase tracking-widest mb-1.5">Priority Level</label>
+                <select id="filter-priority" onchange="applyFilters()" class="w-full bg-black/60 border border-gold-primary/30 text-gray-200 text-xs rounded-xl p-2.5 outline-none focus:border-gold-primary transition-all">
+                    <option value="ALL">All Priorities</option>
+                    <option value="CRITICAL">Critical Priority</option>
+                    <option value="HIGH">High Priority</option>
+                    <option value="MEDIUM">Medium Priority</option>
+                    <option value="LOW">Low Priority</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-gold-primary/80 uppercase tracking-widest mb-1.5">Ticket Status</label>
+                <select id="filter-status" onchange="applyFilters()" class="w-full bg-black/60 border border-gold-primary/30 text-gray-200 text-xs rounded-xl p-2.5 outline-none focus:border-gold-primary transition-all">
+                    <option value="ALL">All Statuses</option>
+                    <option value="Reported">Reported (Pending)</option>
+                    <option value="Assigned">Assigned to Vendor</option>
+                    <option value="Under Repair">Under Repair</option>
+                    <option value="ESCALATED">ESCALATED 🚨</option>
+                    <option value="Verified Closed">Verified Closed</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button id="btn-heatmap" onclick="toggleHeatmap()" class="bg-black/60 hover:bg-black border border-gold-primary/30 text-gold-primary text-xs font-bold py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                    🔥 Heatmap
+                </button>
+                <button onclick="exportCSV()" class="bg-gold-primary/10 hover:bg-gold-primary/20 border border-gold-primary/40 text-gold-primary text-xs font-bold py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                    📥 Export CSV
+                </button>
+            </div>
+            
+            <!-- NAYA: SLA Auto-Escalation Button -->
+            <button onclick="runSLAAudit()" class="mt-2 w-full bg-red-900/30 hover:bg-red-900/50 border border-red-500/50 text-red-400 text-xs font-bold py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                <i data-lucide="siren" class="w-4 h-4"></i> RUN SLA AUTO-ESCALATION
+            </button>
+        </div>
+    </div>
+
+    <!-- RIGHT: ANALYTICS & TASK QUEUE -->
+    <div class="absolute top-6 right-6 bottom-6 z-10 w-[420px] flex flex-col gap-4">
+        
+        <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
+            <div>
+                <div class="text-[9px] text-gold-primary uppercase tracking-widest font-bold">Est. Budget Req.</div>
+                <div id="stat-budget" class="text-xl font-bold text-white mt-0.5">₹0</div>
+                <div class="text-[9px] text-gray-400 mt-2">Critical Count: <strong id="stat-critical" class="text-red-400">0</strong></div>
+            </div>
+            <div class="w-20 h-20 relative">
+                <canvas id="miniChart"></canvas>
+            </div>
+        </div>
+
+        <div class="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden relative">
+            <div class="px-5 py-3.5 border-b border-gold-primary/20 bg-black/40 flex justify-between items-center">
+                <span class="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                    <i data-lucide="layers" class="w-3.5 h-3.5 text-gold-primary"></i> Active Task Queue
+                </span>
+                <span id="visible-count" class="bg-gold-primary/20 text-gold-primary text-[10px] font-bold px-2 py-0.5 rounded-full border border-gold-primary/30 font-mono">0</span>
+            </div>
+            
+            <div id="report-list" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
+
+            <div id="detail-panel" class="absolute inset-0 bg-[#070707]/95 backdrop-blur-2xl z-20 hidden flex-col overflow-y-auto transform transition-transform duration-300 translate-x-full">
+                <div class="px-5 py-4 border-b border-gold-primary/20 bg-black/60 flex justify-between items-center sticky top-0 z-30">
+                    <h3 id="dp-title" class="font-bold text-sm text-white">Report Details</h3>
+                    <button onclick="closeDetail()" class="text-gray-400 hover:text-white bg-black/50 hover:bg-red-500/20 hover:text-red-400 rounded-full w-7 h-7 flex items-center justify-center transition-colors">✕</button>
+                </div>
+                
+                <div class="p-5 flex flex-col gap-4">
+                    <div class="relative w-full rounded-xl overflow-hidden bg-black border border-gold-primary/30 shadow-inner">
+                        <img id="dp-img" src="" alt="Damage" class="w-full object-contain max-h-56" crossorigin="anonymous">
+                        <canvas id="dp-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+                    </div>
+
+                    <div class="bg-black/50 border border-gold-primary/20 rounded-xl p-3.5 flex justify-between items-center">
+                        <div>
+                            <div class="text-[9px] text-gold-primary uppercase tracking-widest font-bold">Calculated Cost</div>
+                            <div id="dp-cost" class="text-white font-mono font-bold text-sm mt-0.5">₹--</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[9px] text-gold-primary uppercase tracking-widest font-bold">Assigned Vendor</div>
+                            <div id="dp-vendor" class="text-gray-200 text-xs font-medium mt-0.5">--</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-black/50 border border-gold-primary/20 rounded-xl p-3.5 flex flex-col gap-3">
+                        <div>
+                            <label class="block text-[9px] font-bold text-gold-primary uppercase tracking-wider mb-1.5">Update Dispatch Status</label>
+                            <select id="dp-status-select" onchange="updateStatus(this.value)" class="w-full bg-black border border-gold-primary/30 text-white text-xs rounded-lg p-2.5 outline-none focus:border-gold-primary">
+                                <option value="Reported">Reported (Pending)</option>
+                                <option value="Assigned">Assign to Contractor</option>
+                                <option value="Under Repair">Mark Under Repair</option>
+                            </select>
+                        </div>
+                        <button onclick="generatePDF()" class="w-full bg-gold-primary/20 hover:bg-gold-primary/30 border border-gold-primary/40 text-gold-primary font-bold text-xs py-2.5 px-4 rounded-lg transition-all flex justify-center items-center gap-2">
+                            📄 Generate Official Work-Order
+                        </button>
+                    </div>
+
+                    <div>
+                        <h4 class="text-[10px] font-bold text-gold-primary uppercase tracking-widest mb-3 border-b border-gold-primary/20 pb-1.5">Secure Audit Trail</h4>
+                        <div id="dp-timeline" class="border-l border-gold-primary/30 ml-2 pl-4 space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAYA: Global Notification Toast -->
+    <div id="global-toast" class="absolute top-8 left-1/2 transform -translate-x-1/2 -translate-y-24 opacity-0 transition-all duration-500 bg-black/90 border px-6 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex items-center gap-4 w-[90%] max-w-md z-50 backdrop-blur-md">
+        <div id="toast-icon" class="mt-0.5"></div>
+        <div>
+            <h4 id="toast-title" class="text-sm font-bold text-white uppercase tracking-wider"></h4>
+            <p id="toast-msg" class="text-xs text-gray-300 mt-1 font-mono leading-relaxed"></p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+    <script>
+        const API_BASE = "http://localhost:8000";
+        const COLORS = { LOW: "#22c55e", MEDIUM: "#eab308", HIGH: "#f97316", CRITICAL: "#ef4444" };
+        const VENDORS = ["L&T Infra", "Gwalior RoadWorks", "Apex Construction", "City Municipal Team"];
+        
+        let map, allReports = [], currentReportId = null, clusterGroup, heatLayer, isHeatmapActive = false, miniChartInstance;
+
+        map = L.map('map', { zoomControl: false }).setView([26.2183, 78.1828], 13);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }).addTo(map);
+        clusterGroup = L.markerClusterGroup({ maxClusterRadius: 40 });
+
+        const calculateCost = (score) => Math.round((score || 10) * 185);
+        const assignVendor = (id) => VENDORS[id % VENDORS.length];
+
+        // --- NAYA: Toast Logic ---
+        function showToast(type, title, msg) {
+            const toast = document.getElementById('global-toast');
+            const iconWrap = document.getElementById('toast-icon');
+            
+            document.getElementById('toast-title').innerText = title;
+            document.getElementById('toast-msg').innerText = msg;
+            
+            if(type === 'success') {
+                iconWrap.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6 text-green-500"></i>`;
+                toast.className = "absolute top-8 left-1/2 transform -translate-x-1/2 translate-y-0 opacity-100 transition-all duration-500 bg-black/95 border border-green-500/50 px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(34,197,94,0.3)] flex items-start gap-4 w-[90%] max-w-md z-50 backdrop-blur-md";
+            } else {
+                iconWrap.innerHTML = `<i data-lucide="siren" class="w-6 h-6 text-red-500"></i>`;
+                toast.className = "absolute top-8 left-1/2 transform -translate-x-1/2 translate-y-0 opacity-100 transition-all duration-500 bg-red-950/90 border border-red-500/80 px-6 py-4 rounded-xl shadow-[0_0_40px_rgba(239,68,68,0.5)] flex items-start gap-4 w-[90%] max-w-md z-50 backdrop-blur-md";
+            }
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-24', 'opacity-0');
+            }, 6000);
+        }
+
+        // --- NAYA: SLA Audit Logic ---
+        async function runSLAAudit() {
+            try {
+                const res = await fetch(`${API_BASE}/run-sla-audit`, { method: 'POST' });
+                const data = await res.json();
+                
+                if (data.status === "breach_detected") {
+                    showToast('error', 'SLA BREACH DETECTED!', data.mock_alert);
+                } else {
+                    showToast('success', 'SLA Audit Passed', data.mock_alert);
+                }
+                loadData(); // Refresh UI to show ESCALATED status
+            } catch (err) {
+                showToast('error', 'Connection Error', 'Could not run SLA engine.');
+            }
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch(`${API_BASE}/reports`);
+                allReports = await res.json();
+                applyFilters();
+            } catch (err) { console.error("API Error", err); }
+        }
+
+        function applyFilters() {
+            const p = document.getElementById('filter-priority').value;
+            const s = document.getElementById('filter-status').value;
+            const filtered = allReports.filter(r => (p === "ALL" || r.priority_band === p) && (s === "ALL" || r.status === s));
+            renderUI(filtered);
+            renderAnalytics(filtered);
+        }
+
+        function toggleHeatmap() {
+            isHeatmapActive = !isHeatmapActive;
+            const btn = document.getElementById('btn-heatmap');
+            if(isHeatmapActive) {
+                btn.style.background = 'rgba(212,175,55,0.3)';
+                btn.style.borderColor = '#d4af37';
+            } else {
+                btn.style.background = 'rgba(0,0,0,0.6)';
+                btn.style.borderColor = 'rgba(212,175,55,0.3)';
+            }
+            applyFilters();
+        }
+
+        function renderAnalytics(reports) {
+            let totalBudget = 0, criticalCount = 0;
+            const counts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+            
+            reports.forEach(r => { 
+                if(r.status !== 'Verified Closed' && r.status !== 'Resolved') totalBudget += calculateCost(r.priority_score);
+                if(r.priority_band === 'CRITICAL') criticalCount++;
+                if(counts[r.priority_band] !== undefined) counts[r.priority_band]++; 
+            });
+
+            document.getElementById('stat-budget').textContent = `₹${totalBudget.toLocaleString('en-IN')}`;
+            document.getElementById('stat-critical').textContent = criticalCount;
+
+            const ctx = document.getElementById('miniChart').getContext('2d');
+            if(miniChartInstance) miniChartInstance.destroy();
+            
+            miniChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: { 
+                    labels: ['Crit', 'High', 'Med', 'Low'], 
+                    datasets: [{ 
+                        data: [counts.CRITICAL, counts.HIGH, counts.MEDIUM, counts.LOW], 
+                        backgroundColor: [COLORS.CRITICAL, COLORS.HIGH, COLORS.MEDIUM, COLORS.LOW], 
+                        borderWidth: 0 
+                    }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '75%' }
+            });
+        }
+
+        function renderUI(reports) {
+            document.getElementById('visible-count').textContent = reports.length;
+            clusterGroup.clearLayers(); map.removeLayer(clusterGroup); if(heatLayer) map.removeLayer(heatLayer);
+            
+            const heatPoints = [];
+            const list = document.getElementById('report-list'); list.innerHTML = "";
+
+            reports.sort((a, b) => b.priority_score - a.priority_score).forEach(r => {
+                const band = r.priority_band || "LOW";
+                const colorHex = COLORS[band];
+                const cost = calculateCost(r.priority_score);
+                const isAssigned = ['Assigned', 'Under Repair', 'Verified Closed', 'Resolved', 'ESCALATED'].includes(r.status);
+                const vendor = isAssigned ? assignVendor(r.id) : "Unassigned";
+
+                if (r.lat && r.lon) {
+                    heatPoints.push([r.lat, r.lon, r.priority_score / 100]);
+                    const m = L.circleMarker([r.lat, r.lon], { radius: 7, fillColor: colorHex, color: "#000", weight: 1.5, fillOpacity: 1 });
+                    m.on('click', () => openDetail(r)); clusterGroup.addLayer(m);
+                }
+
+                const card = document.createElement('div');
+                
+                // Visual red glow if Escalated
+                if(r.status === 'ESCALATED') {
+                    card.className = 'bg-red-950/40 border border-red-500/50 rounded-xl p-3 cursor-pointer transition-all relative overflow-hidden shadow-[0_0_15px_rgba(239,68,68,0.2)]';
+                } else {
+                    card.className = 'bg-black/40 border border-gold-primary/20 hover:border-gold-primary/60 rounded-xl p-3 cursor-pointer transition-all relative overflow-hidden';
+                }
+
+                card.innerHTML = `
+                    <div class="absolute left-0 top-0 bottom-0 w-1" style="background-color: ${colorHex};"></div>
+                    <div class="flex justify-between items-center mb-1.5 pl-2">
+                        <span class="font-bold text-white text-xs">#${r.id} — ${r.damage_type}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider text-black" style="background-color: ${colorHex};">${band}</span>
+                    </div>
+                    <div class="text-[11px] text-gray-400 mb-2.5 pl-2 flex items-center gap-1.5">
+                        Status: <span class="font-bold ${r.status === 'ESCALATED' ? 'text-red-400 animate-pulse' : 'text-gray-200'}">${r.status}</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-black/60 p-2 rounded-lg border border-gold-primary/10 ml-2">
+                        <div>
+                            <div class="text-[8px] text-gold-primary uppercase tracking-widest font-bold">Est. Cost</div>
+                            <div class="text-white font-mono text-xs font-bold">₹${cost.toLocaleString('en-IN')}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[8px] text-gold-primary uppercase tracking-widest font-bold">Contractor</div>
+                            <div class="text-[11px] font-medium ${isAssigned ? 'text-gray-300' : 'text-red-400'}">${vendor}</div>
+                        </div>
+                    </div>
+                `;
+                card.onclick = () => { if(r.lat) map.setView([r.lat, r.lon], 17); openDetail(r); };
+                list.appendChild(card);
+            });
+
+            if(isHeatmapActive) heatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 15 }).addTo(map);
+            else map.addLayer(clusterGroup);
+        }
+
+        function exportCSV() {
+            const p = document.getElementById('filter-priority').value, s = document.getElementById('filter-status').value;
+            const filtered = allReports.filter(r => (p === "ALL" || r.priority_band === p) && (s === "ALL" || r.status === s));
+            const headers = ["Report ID", "Damage Type", "Priority Band", "Score", "Estimated Cost (INR)", "Contractor", "Status", "Date", "Lat", "Lon"];
+            const csvRows = [headers.join(",")];
+            filtered.forEach(r => csvRows.push([r.id, r.damage_type, r.priority_band, r.priority_score, calculateCost(r.priority_score), ['Assigned', 'Under Repair', 'Verified Closed', 'Resolved', 'ESCALATED'].includes(r.status) ? assignVendor(r.id) : "Unassigned", r.status, r.created_at, r.lat, r.lon].join(",")));
+            
+            const link = document.createElement("a"); 
+            link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csvRows.join("\n"))); 
+            link.setAttribute("download", "RoadPulse_Finance_Export.csv"); 
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        async function openDetail(r) {
+            currentReportId = r.id;
+            const dp = document.getElementById('detail-panel');
+            dp.classList.remove('hidden');
+            setTimeout(() => { dp.classList.remove('translate-x-full'); }, 10);
+            
+            document.getElementById('dp-title').textContent = `Report #${r.id} Details`;
+            
+            const selectEl = document.getElementById('dp-status-select');
+            if(r.status === 'Verified Closed' || r.status === 'Resolved' || r.status === 'ESCALATED') {
+                if(![...selectEl.options].some(o => o.value === r.status)) {
+                    selectEl.add(new Option(r.status, r.status));
+                }
+                selectEl.value = r.status;
+                selectEl.disabled = true;
+            } else {
+                selectEl.disabled = false;
+                selectEl.value = r.status;
+            }
+
+            document.getElementById('dp-cost').textContent = `₹${calculateCost(r.priority_score).toLocaleString('en-IN')}`;
+            
+            const isAssigned = ['Assigned', 'Under Repair', 'Verified Closed', 'Resolved', 'ESCALATED'].includes(r.status);
+            const vElement = document.getElementById('dp-vendor');
+            vElement.textContent = isAssigned ? assignVendor(r.id) : "Pending Assignment";
+            vElement.className = `text-xs font-medium mt-0.5 ${isAssigned ? 'text-white' : 'text-red-400'}`;
+            
+            const img = document.getElementById('dp-img'), canvas = document.getElementById('dp-canvas'), ctx = canvas.getContext('2d');
+            img.onload = () => {
+                canvas.width = img.width; canvas.height = img.height;
+                const sX = img.width / img.naturalWidth, sY = img.height / img.naturalHeight;
+                ctx.clearRect(0,0, canvas.width, canvas.height); 
+                ctx.strokeStyle = "#eab308"; ctx.lineWidth = 3;
+                if(r.detections) {
+                    r.detections.forEach(d => { 
+                        const [x1, y1, x2, y2] = d.bbox; 
+                        ctx.strokeRect(x1*sX, y1*sY, (x2-x1)*sX, (y2-y1)*sY); 
+                    });
+                }
+            };
+            img.src = `${API_BASE}${r.image_url}`;
+
+            const t = document.getElementById('dp-timeline'); 
+            t.innerHTML = `<div class="text-xs text-gray-500 animate-pulse">Fetching logs...</div>`;
+            try {
+                const hRes = await fetch(`${API_BASE}/reports/${r.id}/history`);
+                t.innerHTML = (await hRes.json()).map(h => `
+                    <div class="relative">
+                        <div class="absolute -left-[21px] top-1 w-2 h-2 rounded-full ${h.status === 'ESCALATED' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'bg-gold-primary shadow-[0_0_8px_rgba(212,175,55,0.8)]'}"></div>
+                        <div class="font-bold ${h.status === 'ESCALATED' ? 'text-red-400' : 'text-white'} text-xs">${h.status}</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5 font-mono">${new Date(h.changed_at).toLocaleString()} | ${h.changed_by}</div>
+                    </div>
+                `).join('');
+            } catch(e) { t.innerHTML = `<div class="text-xs text-red-400">Failed to load history</div>`; }
+        }
+
+        function closeDetail() { 
+            const dp = document.getElementById('detail-panel');
+            dp.classList.add('translate-x-full');
+            setTimeout(() => { dp.classList.add('hidden'); }, 300);
+            currentReportId = null; 
+        }
+
+        async function updateStatus(s) {
+            if(!currentReportId) return;
+            await fetch(`${API_BASE}/reports/${currentReportId}/status`, { 
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: s }) 
+            });
+            loadData(); 
+            setTimeout(() => openDetail(allReports.find(r => r.id === currentReportId)), 200);
+        }
+
+        function generatePDF() {
+            if(!currentReportId) return;
+            const r = allReports.find(x => x.id === currentReportId);
+            if(!r) return;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const cost = calculateCost(r.priority_score);
+            const isAssigned = ['Assigned', 'Under Repair', 'Verified Closed', 'Resolved', 'ESCALATED'].includes(r.status);
+            const vendor = isAssigned ? assignVendor(r.id) : "______________________ (Pending Allocation)";
+
+            doc.setFont("helvetica", "bold"); doc.setFontSize(22);
+            doc.text("MUNICIPAL CORPORATION", 105, 25, null, null, "center");
+            doc.setFontSize(12);
+            doc.text("DEPARTMENT OF PUBLIC WORKS (ROAD MAINTENANCE DIVISION)", 105, 33, null, null, "center");
+            
+            doc.setLineWidth(0.5); doc.line(20, 42, 190, 42);
+            doc.setFontSize(16);
+            doc.text("OFFICIAL REPAIR MANDATE (WORK ORDER)", 105, 55, null, null, "center");
+
+            doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+            doc.text(`Mandate/Work Order ID: RM-2026-${r.id}`, 20, 75);
+            doc.text(`Date of Issuance: ${new Date().toLocaleDateString()}`, 140, 75);
+            doc.text(`Assigned Contractor: ${vendor}`, 20, 90);
+            doc.text(`Authorized Est. Budget: INR ${cost.toLocaleString('en-IN')}/-`, 20, 100);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Incident Technical Details:", 20, 120);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Damage Classification: ${r.damage_type}`, 25, 130);
+            doc.text(`Priority Band: ${r.priority_band} (Score: ${r.priority_score.toFixed(1)}/100)`, 25, 140);
+            doc.text(`Exact GPS Coordinates: Latitude ${r.lat.toFixed(6)}, Longitude ${r.lon.toFixed(6)}`, 25, 150);
+
+            doc.setFont("helvetica", "italic"); doc.setFontSize(10);
+            doc.text("Service Level Agreement (SLA) Terms:", 20, 175);
+            doc.text("1. The assigned contractor must complete the repair within 48 hours of this mandate.", 25, 182);
+            doc.text("2. The contractor must upload 'After Repair' photographic evidence via the RoadPulse AI Portal.", 25, 189);
+            doc.text("3. Invoices will only be cleared after the AI Auditor verifies smooth asphalt at the exact GPS location.", 25, 196);
+
+            doc.setLineWidth(0.5); doc.line(20, 240, 70, 240);
+            doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+            doc.text("Authorized Signatory", 22, 248);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+            doc.text("Dept. of Public Works", 22, 253);
+
+            doc.line(140, 240, 190, 240);
+            doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+            doc.text("Contractor Acceptance", 142, 248);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+            doc.text("Signature & Seal", 142, 253);
+
+            doc.save(`RoadPulse_WorkOrder_${r.id}.pdf`);
+        }
+
+        loadData(); 
+        setInterval(() => { if(!currentReportId) loadData(); }, 10000);
+        lucide.createIcons();
+    </script>
+</body>
+</html>
