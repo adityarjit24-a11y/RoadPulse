@@ -9,9 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 RADIUS_METERS = 25          
-PHASH_MAX_DISTANCE = 8      
-PHASH_AMBIGUOUS_BAND = (9, 16)   
-EMBEDDING_SIM_THRESHOLD = 0.90     
+PHASH_MAX_DISTANCE = 16 # Increased slightly to compensate for removing heavy AI embeddings
 
 @dataclass
 class DuplicateCheckResult:
@@ -37,7 +35,6 @@ def _calculate_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: f
     return R * c
 
 def _get_candidate_reports(db: Session, lat: float, lon: float, radius_m: int = RADIUS_METERS):
-    # Saare active reports aur unke coordinates database se fetch karo
     query = text("""
         SELECT r.id AS report_id, r.image_hash, r.status, l.lat, l.lon
         FROM reports r
@@ -49,7 +46,6 @@ def _get_candidate_reports(db: Session, lat: float, lon: float, radius_m: int = 
     
     candidates = []
     for row in result:
-        # Tuple unpacking safely based on query columns
         r_id = row[0]
         img_hash = row[1]
         status = row[2]
@@ -66,44 +62,8 @@ def _get_candidate_reports(db: Session, lat: float, lon: float, radius_m: int = 
                     "distance": dist
                 })
                 
-    # Distance ke hisaab se sort karo (nearest first) taaki SQL ORDER BY ki tarah behavior mile
     candidates.sort(key=lambda x: x["distance"])
-    
-    # Original function format match karne ke liye tuples return karo: (report_id, image_hash, status)
     return [(c["report_id"], c["image_hash"], c["status"]) for c in candidates]
-
-_embedding_model = None
-_embedding_transform = None
-
-def _load_embedding_model():
-    global _embedding_model, _embedding_transform
-    if _embedding_model is None:
-        import torch
-        from torchvision import models, transforms
-
-        base = models.mobilenet_v3_small(weights="DEFAULT")
-        base.classifier = torch.nn.Identity()  
-        base.eval()
-        _embedding_model = base
-        _embedding_transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-    return _embedding_model, _embedding_transform
-
-def _compute_embedding(image_bytes: bytes):
-    import torch
-    model, transform = _load_embedding_model()
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    tensor = transform(img).unsqueeze(0)
-    with torch.no_grad():
-        vec = model(tensor).squeeze(0)
-    return vec
-
-def _cosine_similarity(a, b) -> float:
-    import torch
-    return torch.nn.functional.cosine_similarity(a.unsqueeze(0), b.unsqueeze(0)).item()
 
 def check_for_duplicate(
     db: Session,
@@ -123,28 +83,16 @@ def check_for_duplicate(
     best_distance = None
 
     for row in candidates:
-        # Agar purani report mein hash nahi hai toh skip karo
-        if not row[1]:  # row[1] is image_hash
+        if not row[1]: 
             continue
             
         candidate_hash = imagehash.hex_to_hash(row[1])
         distance = new_hash - candidate_hash  
         if best_distance is None or distance < best_distance:
             best_distance = distance
-            best_match_id = row[0]  # row[0] is report_id
+            best_match_id = row[0] 
 
     if best_distance is not None and best_distance <= PHASH_MAX_DISTANCE:
         return DuplicateCheckResult(True, best_match_id, "gps+phash")
-
-    if best_distance is not None and PHASH_AMBIGUOUS_BAND[0] <= best_distance <= PHASH_AMBIGUOUS_BAND[1]:
-        new_embedding = _compute_embedding(new_image_bytes)
-        try:
-            candidate_bytes = candidate_image_loader(best_match_id)
-            candidate_embedding = _compute_embedding(candidate_bytes)
-            similarity = _cosine_similarity(new_embedding, candidate_embedding)
-            if similarity >= EMBEDDING_SIM_THRESHOLD:
-                return DuplicateCheckResult(True, best_match_id, "gps+embedding")
-        except Exception as e:
-            print(f"Embedding check failed: {e}")
 
     return DuplicateCheckResult(False, None, "no_match")
