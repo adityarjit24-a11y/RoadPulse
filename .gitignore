@@ -11,3 +11,5 @@ datasets/
 dataset/
 yolo_data/
 backend/static/uploads/
+*.db
+*.sqlite3
