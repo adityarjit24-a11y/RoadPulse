@@ -1,4 +1,5 @@
 import os
+import gc
 from pydantic import BaseModel
 from sqlalchemy import text
 from fastapi import HTTPException, FastAPI, File, UploadFile, Form, Depends
@@ -91,7 +92,12 @@ async def predict_road_damage(
                     "citizen_report_count": existing_report.citizen_report_count
                 }
 
-    results = model.predict(image)
+    # LOW RAM MODE: Reduce image size for YOLO processing and force CPU device
+    results = model.predict(image, imgsz=320, device='cpu')
+    
+    # CLEAR MEMORY: Instantly free up RAM after prediction
+    gc.collect()
+
     CONFIDENCE_THRESHOLD = 0.40 
     
     new_hash = str(_compute_phash(image_data))
@@ -297,8 +303,10 @@ async def verify_repair(
     after_image_path = f"static/uploads/{report_id}_after.jpg"
     image.save(after_image_path)
 
-    # 4. Anti-Fraud AI Check (YOLO)
-    results = model.predict(image)
+    # 4. Anti-Fraud AI Check (YOLO) - LOW RAM MODE APPLIED HERE TOO
+    results = model.predict(image, imgsz=320, device='cpu')
+    gc.collect()
+
     issues_found = []
     
     for result in results:
