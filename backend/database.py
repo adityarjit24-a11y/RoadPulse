@@ -12,6 +12,18 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+from sqlalchemy import text
+
+# Auto-fix: Add missing image_hash column if it doesn't exist yet
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE reports ADD COLUMN image_hash VARCHAR;"))
+        conn.commit()
+        print("Successfully added missing image_hash column!")
+except Exception as e:
+    # Column pehle se hoga toh error ko ignore kar dega
+    pass
+
 class Report(Base):
     __tablename__ = "reports"
     id = Column(Integer, primary_key=True, index=True)
