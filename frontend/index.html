@@ -5,63 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RoadPulse | Golden AI Core</title>
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-                extend: {
-                    colors: {
-                        background: '#030303', surface: '#0d0d0d',
-                        gold: { 300: '#fde047', 400: '#facc15', 500: '#eab308', 600: '#ca8a04', primary: '#d4af37' }
-                    }
-                }
-            }
-        }
-    </script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <style>
-        body { background-color: #030303; color: #ededed; overflow-x: hidden; }
-        
-        .orbit-container {
-            position: fixed; top: 50%; left: 50%; width: 100vw; height: 100vh;
-            transform: translate(-50%, -50%); z-index: -1; overflow: hidden;
-            background: radial-gradient(circle at center, rgba(212, 175, 55, 0.15) 0%, #030303 50%);
-        }
-        .orbit {
-            position: absolute; top: 50%; left: 50%; border-radius: 50%;
-            border: 1px solid rgba(212, 175, 55, 0.2); transform: translate(-50%, -50%);
-        }
-        @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-        @keyframes spin-reverse { 0% { transform: translate(-50%, -50%) rotate(360deg); } 100% { transform: translate(-50%, -50%) rotate(0deg); } }
-        
-        .orbit-1 { width: 50vmin; height: 50vmin; animation: spin 30s linear infinite; }
-        .orbit-2 { width: 80vmin; height: 80vmin; animation: spin-reverse 45s linear infinite; border: 1px dashed rgba(212, 175, 55, 0.15); }
-        .orbit-3 { width: 110vmin; height: 110vmin; animation: spin 60s linear infinite; }
-
-        .node {
-            position: absolute; top: 0; left: 50%; width: 48px; height: 48px; margin-left: -24px; margin-top: -24px;
-            background: #0d0d0d; border: 1px solid rgba(212, 175, 55, 0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 20px rgba(212, Yahan aapka complete, refined, aur ready-to-replace `index.html` code hai. 
-
-Maine aapke code ko properly format kar diya hai aur jo hidden "non-breaking spaces" (jinse kabhi-kabhi browser ya editor mein formatting issues aate hain) the, unhe clean kar diya hai taaki aap isko direct copy-paste kar sakein. Code ki functionality aur design bilkul same rakhi gayi hai.
-
-```html
-<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RoadPulse | Golden AI Core</title>
-    
     <!-- Fonts & External CSS -->
     <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
     <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
@@ -154,6 +97,22 @@ Maine aapke code ko properly format kar diya hai aur jo hidden "non-breaking spa
         </div>
     </div>
 
+    <!-- Navigation Header -->
+    <div class="w-full max-w-4xl flex justify-between items-center mb-4 z-20">
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-mono text-gold-primary/80 uppercase tracking-widest">System Operational</span>
+        </div>
+        <div class="flex gap-3">
+            <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gold-primary/40 bg-black/70 text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Admin Panel
+            </a>
+            <a href="contractor.html" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gold-primary/40 bg-black/70 text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                <i data-lucide="hard-hat" class="w-4 h-4"></i> Contractor Portal
+            </a>
+        </div>
+    </div>
+
     <!-- Main Content Core -->
     <main class="w-full max-w-4xl glass-core rounded-3xl p-8 relative z-10 overflow-hidden transform transition-all duration-500 hover:scale-[1.01]">
         
@@ -216,7 +175,7 @@ Maine aapke code ko properly format kar diya hai aur jo hidden "non-breaking spa
                     Engage AI Analysis
                 </button>
                 
-                <!-- Explicit Download Button (Hidden by default) -->
+                <!-- Download Button (Hidden by default) -->
                 <button type="button" id="download-btn" class="hidden w-full bg-black/80 hover:bg-black border border-gold-primary/60 text-gold-primary font-bold text-sm tracking-widest uppercase py-3.5 px-6 rounded-xl transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] flex justify-center items-center gap-3">
                     <i data-lucide="file-down" class="w-5 h-5"></i>
                     Download Official Receipt
@@ -390,7 +349,6 @@ Maine aapke code ko properly format kar diya hai aur jo hidden "non-breaking spa
                 } else if (data.detections && data.detections.length > 0) {
                     showToast('success', 'Analysis Verified', `Identified ${data.total_issues_found} structural defect(s).`);
                     
-                    // Draw Canvas Bounding Boxes
                     canvas.classList.remove('hidden');
                     const ctx = canvas.getContext('2d');
                     const imgObj = new Image();
