@@ -8,12 +8,7 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///./roadpulse.db"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
-from sqlalchemy import text
 
-# Force enable PostGIS extension on startup automatically
-with engine.connect() as connection:
-    connection.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
-    connection.commit()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
