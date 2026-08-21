@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoadPulse | Citizen Tracking Portal</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        background: '#030303', surface: '#0a0a0a',
+                        gold: { 400: '#facc15', 500: '#eab308', primary: '#d4af37' }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #030303; color: #ededed; overflow-x: hidden; }
+        
+        .tech-grid {
+            position: fixed; inset: 0; z-index: -2;
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(212, 175, 55, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(212, 175, 55, 0.05) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
+            -webkit-mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
+        }
+
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(212, 175, 55, 0.3); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-4 lg:p-8 relative selection:bg-gold-500 selection:text-black">
+    
+    <div class="tech-grid"></div>
+
+    <!-- Top Navigation / Tab Switchers -->
+    <div class="w-full max-w-4xl flex flex-wrap justify-center gap-3 mb-6 z-20">
+        <a href="index.html" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gold-primary/40 bg-black/80 text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all">
+            <i data-lucide="scan-line" class="w-4 h-4"></i> AI Scanner
+        </a>
+        <a href="track.html" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gold-primary bg-gold-primary text-black text-xs font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+            <i data-lucide="search" class="w-4 h-4"></i> Track Report
+        </a>
+        <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gold-primary/40 bg-black/80 text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Admin Panel
+        </a>
+        <a href="contractor.html" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gold-primary/40 bg-black/80 text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all">
+            <i data-lucide="hard-hat" class="w-4 h-4"></i> Contractor
+        </a>
+    </div>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-4xl glass-panel rounded-[2rem] p-6 lg:p-10 relative z-10 my-auto">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">
+                Citizen <span class="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-gold-primary">Tracker</span>
+            </h1>
+            <p class="text-xs text-gold-primary/80 font-bold tracking-[0.2em] uppercase">Real-Time Civic Transparency Portal</p>
+        </header>
+
+        <!-- Search Box -->
+        <div class="max-w-xl mx-auto mb-10">
+            <div class="flex gap-2">
+                <div class="relative flex-1">
+                    <input type="text" id="search-input" class="w-full bg-black/70 border border-gold-primary/40 rounded-xl py-3.5 px-4 pl-11 text-white font-mono text-sm focus:border-gold-primary outline-none transition-all placeholder-gray-500 shadow-inner" placeholder="Enter Tracking ID (e.g. 1 or RP-2026-CITIZEN-1)">
+                    <i data-lucide="hash" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-primary/60"></i>
+                </div>
+                <button onclick="trackReport()" class="bg-gradient-to-r from-gold-500 to-gold-primary hover:from-gold-400 hover:to-gold-500 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] flex items-center gap-2">
+                    <i data-lucide="search" class="w-4 h-4"></i> Track
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section (Hidden Initially) -->
+        <div id="result-container" class="hidden space-y-8 animate-fadeIn">
+            
+            <!-- Summary Header Card -->
+            <div class="bg-black/60 border border-gold-primary/30 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <span id="res-id" class="text-lg font-extrabold text-white font-mono">#--</span>
+                        <span id="res-badge" class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-black bg-gold-500">--</span>
+                    </div>
+                    <p id="res-type" class="text-xs text-gray-400 font-mono">Damage Type: <strong class="text-white">--</strong></p>
+                </div>
+                <div class="text-left md:text-right">
+                    <div class="text-[9px] text-gold-primary uppercase tracking-widest font-bold">Current Status</div>
+                    <div id="res-status" class="text-sm font-bold text-white mt-0.5 font-mono">--</div>
+                </div>
+            </div>
+
+            <!-- Pipeline Progress Bar (Source of Truth) -->
+            <div class="bg-black/40 border border-gold-primary/20 rounded-2xl p-6">
+                <h4 class="text-xs font-bold text-gold-primary uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <i data-lucide="git-commit" class="w-4 h-4"></i> Municipal Resolution Pipeline
+                </h4>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
+                    <!-- Step 1 -->
+                    <div id="step-reported" class="flex flex-col gap-2 p-3 rounded-xl border border-gray-800 bg-black/60 opacity-40 transition-all">
+                        <div class="w-6 h-6 rounded-full bg-gold-primary/20 text-gold-primary flex items-center justify-center text-xs font-bold font-mono">1</div>
+                        <div class="text-xs font-bold text-white uppercase tracking-wider">Reported</div>
+                        <div class="text-[10px] text-gray-400 font-mono">Logged into Queue</div>
+                    </div>
+                    <!-- Step 2 -->
+                    <div id="step-assigned" class="flex flex-col gap-2 p-3 rounded-xl border border-gray-800 bg-black/60 opacity-40 transition-all">
+                        <div class="w-6 h-6 rounded-full bg-gold-primary/20 text-gold-primary flex items-center justify-center text-xs font-bold font-mono">2</div>
+                        <div class="text-xs font-bold text-white uppercase tracking-wider">Assigned</div>
+                        <div class="text-[10px] text-gray-400 font-mono">Vendor Allocated</div>
+                    </div>
+                    <!-- Step 3 -->
+                    <div id="step-repair" class="flex flex-col gap-2 p-3 rounded-xl border border-gray-800 bg-black/60 opacity-40 transition-all">
+                        <div class="w-6 h-6 rounded-full bg-gold-primary/20 text-gold-primary flex items-center justify-center text-xs font-bold font-mono">3</div>
+                        <div class="text-xs font-bold text-white uppercase tracking-wider">Under Repair</div>
+                        <div class="text-[10px] text-gray-400 font-mono">Field Execution</div>
+                    </div>
+                    <!-- Step 4 -->
+                    <div id="step-closed" class="flex flex-col gap-2 p-3 rounded-xl border border-gray-800 bg-black/60 opacity-40 transition-all">
+                        <div class="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-xs font-bold font-mono">4</div>
+                        <div class="text-xs font-bold text-white uppercase tracking-wider">Verified Closed</div>
+                        <div class="text-[10px] text-gray-400 font-mono">AI Audit Passed</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image & Timeline Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Evidence Image -->
+                <div class="bg-black/40 border border-gold-primary/20 rounded-2xl p-4 flex flex-col">
+                    <h4 class="text-xs font-bold text-gold-primary uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <i data-lucide="image" class="w-4 h-4"></i> Original Evidence
+                    </h4>
+                    <div class="flex-1 rounded-xl overflow-hidden bg-black border border-gold-primary/30 flex items-center justify-center min-h-[200px]">
+                        <img id="res-img" src="" alt="Evidence" class="w-full object-contain max-h-56" crossorigin="anonymous">
+                    </div>
+                </div>
+
+                <!-- Secure Audit Trail Timeline -->
+                <div class="bg-black/40 border border-gold-primary/20 rounded-2xl p-4 flex flex-col">
+                    <h4 class="text-xs font-bold text-gold-primary uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i> Secure Audit Trail
+                    </h4>
+                    <div class="flex-1 overflow-y-auto max-h-60 p-2">
+                        <div id="res-timeline" class="border-l border-gold-primary/30 ml-2 pl-4 space-y-4">
+                            <!-- Timeline items injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Error State Box -->
+        <div id="error-container" class="hidden max-w-xl mx-auto bg-red-950/40 border border-red-500/50 rounded-2xl p-6 text-center text-red-400">
+            <i data-lucide="alert-octagon" class="w-8 h-8 mx-auto mb-2"></i>
+            <h4 class="font-bold uppercase tracking-wider text-sm">Report Not Found</h4>
+            <p class="text-xs font-mono text-gray-400 mt-1">Please verify your Tracking ID and try again.</p>
+        </div>
+
+    </main>
+
+    <footer class="text-center text-[10px] text-gray-500 font-mono tracking-widest uppercase py-4">
+        RoadPulse Civic Intelligence Core &copy; 2026
+    </footer>
+
+    <script>lucide.createIcons();</script>
+    <script>
+        const API_BASE = "http://127.0.0.1:8000";
+        const COLORS = { LOW: "#22c55e", MEDIUM: "#eab308", HIGH: "#f97316", CRITICAL: "#ef4444" };
+
+        async function trackReport() {
+            const rawInput = document.getElementById('search-input').value.trim();
+            if(!rawInput) { alert("Please enter a Tracking ID."); return; }
+
+            // Extract numeric ID whether user inputs "1" or "RP-2026-CITIZEN-1"
+            const reportId = rawInput.replace(/\D/g, '');
+            if(!reportId) { alert("Invalid Tracking ID format."); return; }
+
+            const resultContainer = document.getElementById('result-container');
+            const errorContainer = document.getElementById('error-container');
+            resultContainer.classList.add('hidden');
+            errorContainer.classList.add('hidden');
+
+            try {
+                // Fetch all reports to find the matching ID
+                const res = await fetch(`${API_BASE}/reports`);
+                const reports = await res.json();
+                const report = reports.find(r => r.id == reportId);
+
+                if(!report) {
+                    errorContainer.classList.remove('hidden');
+                    return;
+                }
+
+                // Populate Summary
+                document.getElementById('res-id').textContent = `#${report.id}`;
+                document.getElementById('res-type').innerHTML = `Damage Classification: <strong class="text-white">${report.damage_type}</strong>`;
+                document.getElementById('res-status').textContent = report.status;
+                
+                const badge = document.getElementById('res-badge');
+                badge.textContent = report.priority_band;
+                badge.style.backgroundColor = COLORS[report.priority_band] || '#eab308';
+
+                // Populate Image
+                document.getElementById('res-img').src = `${API_BASE}${report.image_url}`;
+
+                // Update Pipeline Progress Steps
+                updatePipeline(report.status);
+
+                // Fetch History Timeline
+                const hRes = await fetch(`${API_BASE}/reports/${report.id}/history`);
+                const history = await hRes.json();
+                
+                const timelineEl = document.getElementById('res-timeline');
+                timelineEl.innerHTML = history.map(h => `
+                    <div class="relative">
+                        <div class="absolute -left-[21px] top-1 w-2 h-2 rounded-full ${h.status === 'ESCALATED' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'bg-gold-primary shadow-[0_0_8px_rgba(212,175,55,0.8)]'}"></div>
+                        <div class="font-bold ${h.status === 'ESCALATED' ? 'text-red-400' : 'text-white'} text-xs">${h.status}</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5 font-mono">${new Date(h.changed_at).toLocaleString()} | ${h.changed_by}</div>
+                    </div>
+                `).join('');
+
+                resultContainer.classList.remove('hidden');
+                lucide.createIcons();
+
+            } catch (err) {
+                console.error("Tracking Error:", err);
+                errorContainer.classList.remove('hidden');
+            }
+        }
+
+        function updatePipeline(status) {
+            // Reset steps
+            ['reported', 'assigned', 'repair', 'closed'].forEach(s => {
+                const el = document.getElementById(`step-${s}`);
+                el.classList.remove('border-gold-primary', 'bg-gold-primary/10', 'opacity-100');
+                el.classList.add('border-gray-800', 'bg-black/60', 'opacity-40');
+            });
+
+            // Map status to pipeline progression
+            const activeSteps = {
+                'Reported': ['reported'],
+                'Assigned': ['reported', 'assigned'],
+                'Under Repair': ['reported', 'assigned', 'repair'],
+                'Verified Closed': ['reported', 'assigned', 'repair', 'closed'],
+                'Resolved': ['reported', 'assigned', 'repair', 'closed'],
+                'ESCALATED': ['reported'] // Alert state
+            };
+
+            const stepsToHighlight = activeSteps[status] || ['reported'];
+            stepsToHighlight.forEach(s => {
+                const el = document.getElementById(`step-${s}`);
+                el.classList.remove('border-gray-800', 'bg-black/60', 'opacity-40');
+                el.classList.add('border-gold-primary', 'bg-gold-primary/10', 'opacity-100');
+            });
+        }
+    </script>
+</body>
+</html>

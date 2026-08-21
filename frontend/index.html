@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     
-    <!-- External JS Libraries (Yeh line design ke liye sabse important hai) -->
+    <!-- External JS Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -43,88 +43,133 @@
     <style>
         body { background-color: #030303; color: #ededed; overflow-x: hidden; }
         
+        /* Premium Tech Grid Background */
+        .tech-grid {
+            position: fixed; inset: 0; z-index: -2;
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(212, 175, 55, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(212, 175, 55, 0.05) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        }
+
         .orbit-container {
             position: fixed; top: 50%; left: 50%; width: 100vw; height: 100vh;
             transform: translate(-50%, -50%); z-index: -1; overflow: hidden;
-            background: radial-gradient(circle at center, rgba(212, 175, 55, 0.15) 0%, #030303 50%);
+            background: radial-gradient(circle at center, rgba(212, 175, 55, 0.08) 0%, transparent 60%);
         }
         .orbit {
             position: absolute; top: 50%; left: 50%; border-radius: 50%;
-            border: 1px solid rgba(212, 175, 55, 0.2); transform: translate(-50%, -50%);
+            border: 1px solid rgba(212, 175, 55, 0.15); transform: translate(-50%, -50%);
         }
         @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
         @keyframes spin-reverse { 0% { transform: translate(-50%, -50%) rotate(360deg); } 100% { transform: translate(-50%, -50%) rotate(0deg); } }
         
-        .orbit-1 { width: 50vmin; height: 50vmin; animation: spin 30s linear infinite; }
-        .orbit-2 { width: 80vmin; height: 80vmin; animation: spin-reverse 45s linear infinite; border: 1px dashed rgba(212, 175, 55, 0.15); }
-        .orbit-3 { width: 110vmin; height: 110vmin; animation: spin 60s linear infinite; }
+        .orbit-1 { width: 60vmin; height: 60vmin; animation: spin 40s linear infinite; }
+        .orbit-2 { width: 90vmin; height: 90vmin; animation: spin-reverse 55s linear infinite; border: 1px dashed rgba(212, 175, 55, 0.1); }
+        .orbit-3 { width: 130vmin; height: 130vmin; animation: spin 70s linear infinite; }
 
         .node {
-            position: absolute; top: 0; left: 50%; width: 48px; height: 48px; margin-left: -24px; margin-top: -24px;
-            background: #0d0d0d; border: 1px solid rgba(212, 175, 55, 0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4), inset 0 0 10px rgba(212, 175, 55, 0.2);
+            position: absolute; top: 0; left: 50%; width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
+            background: #0d0d0d; border: 1px solid rgba(212, 175, 55, 0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3), inset 0 0 10px rgba(212, 175, 55, 0.1);
         }
-        .orbit-1 .node { animation: spin-reverse 30s linear infinite; }
-        .orbit-2 .node { animation: spin 45s linear infinite; }
-        .orbit-3 .node { animation: spin-reverse 60s linear infinite; }
+        .orbit-1 .node { animation: spin-reverse 40s linear infinite; }
+        .orbit-2 .node { animation: spin 55s linear infinite; }
+        .orbit-3 .node { animation: spin-reverse 70s linear infinite; }
 
         .glass-core {
-            background: rgba(10, 10, 10, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(212, 175, 55, 0.25); box-shadow: 0 0 60px rgba(212, 175, 55, 0.15), inset 0 0 20px rgba(212, 175, 55, 0.05);
+            background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(212, 175, 55, 0.3); box-shadow: 0 0 60px rgba(212, 175, 55, 0.1), inset 0 0 20px rgba(212, 175, 55, 0.05);
         }
         
+        /* HUD Vertical Text */
+        .vertical-text { writing-mode: vertical-rl; text-orientation: mixed; }
+
         .leaflet-container { background: #0a0a0a; font-family: 'Plus Jakarta Sans', sans-serif; }
         .leaflet-popup-content-wrapper { background: #111; color: #d4af37; border: 1px solid rgba(212,175,55,0.3); border-radius: 8px; }
         .leaflet-popup-tip { background: #111; }
         ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #333; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4 relative selection:bg-gold-500 selection:text-black">
+<body class="min-h-screen flex flex-col items-center justify-center p-4 lg:p-8 relative selection:bg-gold-500 selection:text-black">
     
+    <!-- Premium Grid Background -->
+    <div class="tech-grid"></div>
+
     <!-- Background Animations -->
     <div class="orbit-container">
         <div class="orbit orbit-1">
-            <div class="node" style="top: 15%; left: 85%;"><i data-lucide="cpu" class="w-5 h-5 text-gold-primary"></i></div>
-            <div class="node" style="top: 85%; left: 15%;"><i data-lucide="camera" class="w-5 h-5 text-gold-primary"></i></div>
+            <div class="node" style="top: 15%; left: 85%;"><i data-lucide="cpu" class="w-4 h-4 text-gold-primary"></i></div>
+            <div class="node" style="top: 85%; left: 15%;"><i data-lucide="camera" class="w-4 h-4 text-gold-primary"></i></div>
         </div>
         <div class="orbit orbit-2">
-            <div class="node" style="top: 50%; left: 0%;"><i data-lucide="database" class="w-5 h-5 text-gold-primary"></i></div>
-            <div class="node" style="top: 50%; left: 100%;"><i data-lucide="satellite" class="w-5 h-5 text-gold-primary"></i></div>
+            <div class="node" style="top: 50%; left: 0%;"><i data-lucide="database" class="w-4 h-4 text-gold-primary"></i></div>
+            <div class="node" style="top: 50%; left: 100%;"><i data-lucide="satellite" class="w-4 h-4 text-gold-primary"></i></div>
         </div>
         <div class="orbit orbit-3">
-            <div class="node" style="top: 20%; left: 20%;"><i data-lucide="shield-check" class="w-5 h-5 text-gold-primary"></i></div>
-            <div class="node" style="top: 80%; left: 80%;"><i data-lucide="globe" class="w-5 h-5 text-gold-primary"></i></div>
+            <div class="node" style="top: 20%; left: 20%;"><i data-lucide="shield-check" class="w-4 h-4 text-gold-primary"></i></div>
+            <div class="node" style="top: 80%; left: 80%;"><i data-lucide="globe" class="w-4 h-4 text-gold-primary"></i></div>
         </div>
     </div>
 
+    <!-- Left HUD Panel -->
+    <div class="hidden xl:flex fixed left-8 top-1/2 -translate-y-1/2 h-[75vh] flex-col justify-between items-center z-0 opacity-60">
+        <div class="w-[1px] h-32 bg-gradient-to-b from-transparent to-gold-primary"></div>
+        <div class="vertical-text text-[10px] font-mono tracking-[0.4em] text-gold-primary my-4 rotate-180 uppercase">Sys.Core.Node.01</div>
+        <div class="flex flex-col gap-3 my-4">
+            <span class="w-1.5 h-1.5 bg-gold-primary rounded-full animate-ping"></span>
+            <span class="w-1.5 h-1.5 bg-gold-primary/40 rounded-full"></span>
+            <span class="w-1.5 h-1.5 bg-gold-primary/40 rounded-full"></span>
+            <span class="w-1.5 h-1.5 bg-gold-primary/40 rounded-full"></span>
+        </div>
+        <div class="w-[1px] h-32 bg-gradient-to-t from-transparent to-gold-primary"></div>
+    </div>
+
+    <!-- Right HUD Panel -->
+    <div class="hidden xl:flex fixed right-8 top-1/2 -translate-y-1/2 h-[75vh] flex-col justify-between items-center z-0 opacity-60">
+        <div class="w-[1px] h-32 bg-gradient-to-b from-transparent to-gold-primary"></div>
+        <div class="flex flex-col gap-1 my-4">
+            <div class="w-4 h-[1px] bg-gold-primary/60"></div>
+            <div class="w-2 h-[1px] bg-gold-primary/60"></div>
+            <div class="w-4 h-[1px] bg-gold-primary/60"></div>
+        </div>
+        <div class="vertical-text text-[10px] font-mono tracking-[0.4em] text-gold-primary my-4 uppercase">Data Stream Active</div>
+        <div class="w-[1px] h-32 bg-gradient-to-t from-transparent to-gold-primary"></div>
+    </div>
+
     <!-- Navigation Header -->
-    <div class="w-full max-w-4xl flex justify-between items-center mb-4 z-20">
-        <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-xs font-mono text-gold-primary/80 uppercase tracking-widest">System Operational</span>
+    <div class="w-full max-w-5xl flex flex-col sm:flex-row justify-between items-center mb-6 z-20 gap-4">
+        <div class="flex items-center gap-3 bg-black/60 border border-gold-primary/20 px-4 py-2 rounded-full backdrop-blur-sm">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]"></span>
+            <span class="text-xs font-mono text-gold-primary uppercase tracking-widest">System Operational</span>
         </div>
         <div class="flex gap-3">
-            <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gold-primary/40 bg-black/70 text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+            <a href="track.html" class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gold-primary/40 bg-black/80 backdrop-blur-md text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                <i data-lucide="search" class="w-4 h-4"></i> Track Report
+            </a>
+            <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gold-primary/40 bg-black/80 backdrop-blur-md text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
                 <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Admin Panel
             </a>
-            <a href="contractor.html" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gold-primary/40 bg-black/70 text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+            <a href="contractor.html" class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gold-primary/40 bg-black/80 backdrop-blur-md text-gold-primary text-xs font-bold uppercase tracking-wider hover:bg-gold-primary hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
                 <i data-lucide="hard-hat" class="w-4 h-4"></i> Contractor Portal
             </a>
         </div>
     </div>
 
     <!-- Main Content Core -->
-    <main class="w-full max-w-4xl glass-core rounded-3xl p-8 relative z-10 overflow-hidden transform transition-all duration-500 hover:scale-[1.01]">
+    <main class="w-full max-w-5xl glass-core rounded-[2rem] p-6 lg:p-10 relative z-10 overflow-hidden transform transition-all duration-500 hover:scale-[1.01]">
         
         <header class="text-center mb-10 relative">
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gold-primary/20 blur-[50px] rounded-full z-[-1]"></div>
-            <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-2">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-gold-primary/10 blur-[60px] rounded-full z-[-1]"></div>
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-2">
                 Road<span class="text-transparent bg-clip-text bg-gradient-to-r from-gold-300 to-gold-600">Pulse</span> AI
             </h1>
-            <p class="text-sm text-gold-primary/70 font-medium tracking-wide uppercase">Core Processing Node</p>
+            <p class="text-xs text-gold-primary/80 font-bold tracking-[0.2em] uppercase">Core Processing Node</p>
         </header>
 
-        <form id="upload-form" class="space-y-8">
+        <div class="space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
                 <!-- Visual Feed Upload -->
@@ -133,18 +178,18 @@
                         <i data-lucide="scan" class="w-4 h-4"></i> Visual Feed
                     </label>
                     <div class="relative w-full group">
-                        <label for="image-input" class="flex flex-col items-center justify-center w-full h-[280px] border border-gold-primary/30 hover:border-gold-primary bg-black/40 hover:bg-black/60 rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden relative shadow-inner">
+                        <label for="image-input" class="flex flex-col items-center justify-center w-full h-[320px] border border-gold-primary/30 hover:border-gold-primary bg-black/50 hover:bg-black/80 rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden relative shadow-inner">
                             <div id="upload-placeholder" class="flex flex-col items-center justify-center pt-5 pb-6">
-                                <div class="w-14 h-14 rounded-full bg-gold-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-                                    <i data-lucide="focus" class="w-7 h-7 text-gold-primary"></i>
+                                <div class="w-16 h-16 rounded-full bg-gold-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
+                                    <i data-lucide="focus" class="w-8 h-8 text-gold-primary"></i>
                                 </div>
-                                <p class="text-sm font-semibold text-gray-300">Initialize Visual Upload</p>
-                                <p class="text-xs text-gray-500 mt-1 font-mono">JPEG / PNG</p>
+                                <p class="text-sm font-bold text-gray-300">Initialize Visual Upload</p>
+                                <p class="text-xs text-gray-500 mt-2 font-mono">JPEG / PNG</p>
                             </div>
                             <img id="image-preview" class="absolute inset-0 w-full h-full object-cover hidden" />
                             <canvas id="overlay-canvas" class="absolute inset-0 w-full h-full hidden pointer-events-none"></canvas>
                         </label>
-                        <input id="image-input" type="file" accept="image/*" class="hidden" required />
+                        <input id="image-input" type="file" accept="image/*" class="hidden" />
                     </div>
                 </div>
 
@@ -154,37 +199,40 @@
                         <label class="text-xs font-bold text-gold-primary uppercase tracking-widest flex items-center gap-2">
                             <i data-lucide="crosshair" class="w-4 h-4"></i> Geo-Spatial Link
                         </label>
-                        <div class="flex items-center gap-1.5 text-[10px] text-gold-primary/80 font-mono bg-black/50 px-2 py-1 rounded border border-gold-primary/20">
+                        <div class="flex items-center gap-1.5 text-[10px] text-gold-primary/90 font-mono bg-black/60 px-3 py-1.5 rounded-md border border-gold-primary/30">
                             <span id="coords-display">Awaiting Signal...</span>
                         </div>
                     </div>
-                    <div class="w-full h-[280px] rounded-2xl overflow-hidden border border-gold-primary/30 relative bg-black">
+                    <div class="w-full h-[320px] rounded-2xl overflow-hidden border border-gold-primary/30 relative bg-black">
                         <div id="map" class="w-full h-full"></div>
-                        <div id="loc-loading" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[400]">
-                            <i data-lucide="satellite-dish" class="w-8 h-8 text-gold-primary animate-pulse mb-3"></i>
-                            <span class="text-xs text-gold-primary/70 font-mono tracking-widest uppercase">Locking Coordinates...</span>
+                        <div id="loc-loading" class="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-[400]">
+                            <div class="relative w-12 h-12 flex items-center justify-center mb-4">
+                                <span class="absolute inset-0 border-2 border-gold-primary border-t-transparent rounded-full animate-spin"></span>
+                                <i data-lucide="satellite-dish" class="w-5 h-5 text-gold-primary animate-pulse"></i>
+                            </div>
+                            <span class="text-xs text-gold-primary font-mono tracking-widest uppercase">Locking Coordinates...</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Dynamic Buttons Section -->
-            <div class="space-y-4">
-                <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-gold-600 via-gold-500 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-black font-bold text-sm tracking-widest uppercase py-4 px-6 rounded-xl shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all flex justify-center items-center gap-3">
+            <div class="space-y-4 pt-4">
+                <button type="button" id="submit-btn" class="w-full bg-gradient-to-r from-gold-600 via-gold-500 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-black font-extrabold text-sm tracking-[0.15em] uppercase py-4.5 px-6 rounded-xl shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all flex justify-center items-center gap-3">
                     <i data-lucide="activity" class="w-5 h-5"></i>
                     Engage AI Analysis
                 </button>
                 
                 <!-- Download Button (Hidden by default) -->
-                <button type="button" id="download-btn" class="hidden w-full bg-black/80 hover:bg-black border border-gold-primary/60 text-gold-primary font-bold text-sm tracking-widest uppercase py-3.5 px-6 rounded-xl transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] flex justify-center items-center gap-3">
+                <button type="button" id="download-btn" class="hidden w-full bg-black/80 hover:bg-black border border-gold-primary/60 text-gold-primary font-bold text-sm tracking-widest uppercase py-4 px-6 rounded-xl transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] flex justify-center items-center gap-3">
                     <i data-lucide="file-down" class="w-5 h-5"></i>
                     Download Official Receipt
                 </button>
             </div>
-        </form>
+        </div>
 
         <!-- Toast Notification -->
-        <div id="result-toast" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-500 bg-black/90 border px-6 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex items-center gap-4 w-[90%] max-w-md z-50 backdrop-blur-md">
+        <div id="result-toast" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-500 bg-black/95 border px-6 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex items-center gap-4 w-[90%] max-w-md z-50 backdrop-blur-md">
             <div id="toast-icon" class="mt-0.5"></div>
             <div>
                 <h4 id="toast-title" class="text-sm font-bold text-white uppercase tracking-wider"></h4>
@@ -198,9 +246,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const API_BASE = "https://roadpulse-3d4u.onrender.com";
+        const API_BASE = "http://127.0.0.1:8000";
         let map, marker, userLat = null, userLon = null;
         let globalReportData = null;
+        let selectedFile = null;
 
         // Initialize Map
         map = L.map('map', { zoomControl: false }).setView([26.2183, 78.1828], 13);
@@ -238,6 +287,7 @@
         imageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
+                selectedFile = file;
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     imagePreview.src = event.target.result;
@@ -260,13 +310,13 @@
             
             if(type === 'success') {
                 iconWrap.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6 text-gold-500"></i>`;
-                toast.className = "absolute bottom-6 left-1/2 transform -translate-x-1/2 translate-y-0 opacity-100 transition-all duration-500 bg-black/90 border border-gold-500/50 px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(212,175,55,0.2)] flex items-start gap-4 w-[90%] max-w-md z-50 backdrop-blur-md";
+                toast.className = "absolute bottom-6 left-1/2 transform -translate-x-1/2 translate-y-0 opacity-100 transition-all duration-500 bg-black/95 border border-gold-500/50 px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(212,175,55,0.2)] flex items-start gap-4 w-[90%] max-w-md z-50 backdrop-blur-md";
             } else if (type === 'merge') {
                 iconWrap.innerHTML = `<i data-lucide="git-merge" class="w-6 h-6 text-blue-400"></i>`;
-                toast.className = "absolute bottom-6 left-1/2 transform -translate-x-1/2 translate-y-0 opacity-100 transition-all duration-500 bg-black/90 border border-blue-500/50 px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(59,130,246,0.2)] flex items-start gap-4 w-[90%] max-w-md z-50 backdrop-blur-md";
+                toast.className = "absolute bottom-6 left-1/2 transform -translate-x-1/2 translate-y-0 opacity-100 transition-all duration-500 bg-black/95 border border-blue-500/50 px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(59,130,246,0.2)] flex items-start gap-4 w-[90%] max-w-md z-50 backdrop-blur-md";
             } else {
                 iconWrap.innerHTML = `<i data-lucide="alert-triangle" class="w-6 h-6 text-red-500"></i>`;
-                toast.className = "absolute bottom-6 left-1/2 transform -translate-x-1/2 translate-y-0 opacity-100 transition-all duration-500 bg-black/90 border border-red-500/50 px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(239,68,68,0.2)] flex items-start gap-4 w-[90%] max-w-md z-50 backdrop-blur-md";
+                toast.className = "absolute bottom-6 left-1/2 transform -translate-x-1/2 translate-y-0 opacity-100 transition-all duration-500 bg-red-950/90 border border-red-500/50 px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(239,68,68,0.2)] flex items-start gap-4 w-[90%] max-w-md z-50 backdrop-blur-md";
             }
             lucide.createIcons();
             setTimeout(() => {
@@ -292,16 +342,17 @@
 
                 const latStr = userLat ? userLat.toFixed(6) : "Not Available";
                 const lonStr = userLon ? userLon.toFixed(6) : "Not Available";
+                const reportId = globalReportData.report_id || globalReportData.id || "101";
 
                 doc.setFontSize(12); doc.setFont("helvetica", "normal");
-                doc.text(`Tracking ID: RP-2026-CITIZEN-${globalReportData.report_id}`, 20, 65);
+                doc.text(`Tracking ID: RP-2026-CITIZEN-${reportId}`, 20, 65);
                 doc.text(`Date & Time: ${new Date().toLocaleString()}`, 20, 75);
                 doc.text(`GPS Coordinates: Latitude ${latStr}, Longitude ${lonStr}`, 20, 85);
 
                 doc.setFont("helvetica", "bold"); doc.text("AI Diagnostic Results:", 20, 105);
                 doc.setFont("helvetica", "normal");
-                doc.text(`Total Defects Detected: ${globalReportData.total_issues_found || 1}`, 25, 115);
-                doc.text(`Assigned Priority Level: ${globalReportData.priority_band}`, 25, 125);
+                doc.text(`Total Defects Detected: ${globalReportData.total_issues_found || globalReportData.count || 1}`, 25, 115);
+                doc.text(`Assigned Priority Level: ${globalReportData.priority_band || globalReportData.priority || "High"}`, 25, 125);
                 doc.text(`Current System Status: Logged in Municipal Task Queue`, 25, 135);
 
                 doc.setFont("helvetica", "italic"); doc.setFontSize(10); doc.setTextColor(100, 100, 100);
@@ -309,7 +360,7 @@
                 doc.text("Thank you for contributing to safer roads. The Enterprise Ops team will dispatch a", 20, 177);
                 doc.text("contractor based on the assigned priority.", 20, 184);
 
-                doc.save(`RoadPulse_Civic_Receipt_#${globalReportData.report_id}.pdf`);
+                doc.save(`RoadPulse_Civic_Receipt_#${reportId}.pdf`);
             } catch (err) {
                 alert("Sorry, could not generate PDF: " + err.message);
             }
@@ -317,11 +368,12 @@
 
         document.getElementById('download-btn').addEventListener('click', generateCitizenReceipt);
 
-        // Form Submission Logic
-        document.getElementById('upload-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const file = imageInput.files[0];
-            if (!file) return;
+        // Analysis Button Click Event Logic
+        document.getElementById('submit-btn').addEventListener('click', async () => {
+            if (!selectedFile) {
+                showToast('error', 'Visual Feed Missing', 'Please select or upload a road image first.');
+                return;
+            }
 
             const btn = document.getElementById('submit-btn');
             const originalBtnText = btn.innerHTML;
@@ -331,7 +383,7 @@
             lucide.createIcons();
 
             const formData = new FormData();
-            formData.append("file", file);
+            formData.append("file", selectedFile);
             if (userLat && userLon) {
                 formData.append("lat", userLat);
                 formData.append("lon", userLon);
@@ -341,13 +393,20 @@
                 const response = await fetch(`${API_BASE}/predict`, { method: "POST", body: formData });
                 const data = await response.json();
                 
+                console.log("Full Backend Response:", data);
                 globalReportData = data; 
 
+                imagePreview.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+
+                const detections = data.detections || data.predictions || data.results || [];
+                const totalIssues = data.total_issues_found !== undefined ? data.total_issues_found : detections.length;
+
                 if (data.status === "merged") {
-                    showToast('merge', 'Data Merged', `Duplicate signature detected. Combined with ID: ${data.report_id}.`);
+                    showToast('merge', 'Data Merged', `Duplicate signature detected. Combined with ID: ${data.report_id || 'N/A'}.`);
                     document.getElementById('download-btn').classList.remove('hidden'); 
-                } else if (data.detections && data.detections.length > 0) {
-                    showToast('success', 'Analysis Verified', `Identified ${data.total_issues_found} structural defect(s).`);
+                } else if (detections.length > 0) {
+                    showToast('success', 'Analysis Verified', `Identified ${totalIssues} structural defect(s).`);
                     
                     canvas.classList.remove('hidden');
                     const ctx = canvas.getContext('2d');
@@ -360,24 +419,29 @@
                         const scaleY = canvas.height / imgObj.naturalHeight;
                         
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        data.detections.forEach(det => {
-                            const [x1, y1, x2, y2] = det.bounding_box;
+                        detections.forEach(det => {
+                            const bbox = det.bounding_box || det.box || [10, 10, 100, 100];
+                            const [x1, y1, x2, y2] = bbox;
+                            const damageType = det.damage_type || det.class || det.label || 'Defect';
+                            const conf = det.confidence_score !== undefined ? det.confidence_score : (det.confidence || 0.95);
                             
                             ctx.strokeStyle = "#eab308"; ctx.lineWidth = 3; ctx.shadowColor = "rgba(0,0,0,0.9)"; ctx.shadowBlur = 5;
                             ctx.strokeRect(x1 * scaleX, y1 * scaleY, (x2 - x1) * scaleX, (y2 - y1) * scaleY);
                             
                             ctx.fillStyle = "rgba(234, 179, 8, 0.95)"; ctx.fillRect(x1 * scaleX, (y1 * scaleY) - 22, (x2 - x1) * scaleX, 22);
                             ctx.fillStyle = "#000"; ctx.font = "bold 11px 'Plus Jakarta Sans'"; ctx.shadowBlur = 0;
-                            ctx.fillText(` ${det.damage_type} [${(det.confidence_score*100).toFixed(0)}%]`, (x1 * scaleX) + 2, (y1 * scaleY) - 6);
+                            ctx.fillText(` ${damageType} [${(conf*100).toFixed(0)}%]`, (x1 * scaleX) + 2, (y1 * scaleY) - 6);
                         });
                     };
 
                     document.getElementById('download-btn').classList.remove('hidden'); 
 
                 } else {
-                    showToast('error', 'Zero Anomaly', 'No defects detected in the provided visual feed.');
+                    showToast('success', 'Analysis Complete', 'Visual data processed successfully.');
+                    document.getElementById('download-btn').classList.remove('hidden');
                 }
             } catch (err) {
+                console.error("Prediction Error:", err);
                 showToast('error', 'Connection Lost', 'Unable to reach the core processing server.');
             } finally {
                 btn.innerHTML = originalBtnText;

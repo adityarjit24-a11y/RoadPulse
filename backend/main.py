@@ -1,5 +1,6 @@
 import os
 import gc
+import math
 from pydantic import BaseModel
 from sqlalchemy import text
 from fastapi import HTTPException, FastAPI, File, UploadFile, Form, Depends
@@ -40,6 +41,17 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Python-based GPS Distance Calculator (Haversine Formula)
+def calculate_distance(lat1, lon1, lat2, lon2):
+    R = 6371000  # Radius of Earth in meters
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    
+    a = math.sin(dphi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
 @app.get("/")
 def read_root():
@@ -275,19 +287,10 @@ async def verify_repair(
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
-    # 2. Anti-Fraud Location Check (PostGIS)
+    # 2. Anti-Fraud Location Check (Python-based Haversine)
     loc = report.location
     if loc:
-        query = text("""
-            SELECT ST_DistanceSphere(
-                ST_GeomFromText(:point1, 4326),
-                ST_GeomFromText(:point2, 4326)
-            )
-        """)
-        distance = db.execute(query, {
-            "point1": f"POINT({loc.lon} {loc.lat})",
-            "point2": f"POINT({lon} {lat})"
-        }).scalar()
+        distance = calculate_distance(loc.lat, loc.lon, lat, lon)
 
         # GPS Tolarance increased to 5000 meters for local testing/demos
         if distance > 5000:
